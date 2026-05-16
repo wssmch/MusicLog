@@ -4,13 +4,12 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.musiclog.domain.model.Music
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MusicDao{
     @Query("SELECT * FROM music_table")
-    fun getAllMusic() : Flow<List<Music>> // Flow를 반환하면 DB 값이 바뀔 때마다 ui에 새 리스트를 자동으로 보냄.
+    fun getAllMusic() : Flow<List<MusicEntity>> // Flow를 반환하면 DB 값이 바뀔 때마다 ui에 새 리스트를 자동으로 보냄.
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) // 만약 같은 ID의 노래가 이미 있다면 REPLACE를 수행.
     suspend fun insertMusic(music : MusicEntity)

@@ -11,7 +11,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-@Module // YouTube API v3 및 Firebase Realtime Database 인스턴스를 제공하는 Hilt 모듈입니다.
+@Module // YouTube API v3 및 Firebase Realtime Database 인스턴스를 제공하는 Hilt 모듈.
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
