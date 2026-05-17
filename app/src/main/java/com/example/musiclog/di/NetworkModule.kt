@@ -19,13 +19,13 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideFirebaseDatabase(): FirebaseDatabase { // 팬덤 랭킹을 위한 firebase db객체
+    fun provideFirebaseDatabase() : FirebaseDatabase { // 팬덤 랭킹을 위한 firebase db객체
         return FirebaseDatabase.getInstance()
     }
 
     @Provides
     @Singleton
-    fun provideYouTubeService(): YouTube { // youtube검색을 위한 서비스 객체
+    fun provideYouTubeService() : YouTube { // youtube검색을 위한 서비스 객체
         return YouTube.Builder(
             NetHttpTransport(),
             GsonFactory.getDefaultInstance(),
