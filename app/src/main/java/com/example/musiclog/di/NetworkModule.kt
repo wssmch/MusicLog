@@ -10,12 +10,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import com.example.musiclog.BuildConfig
 
 @Module // YouTube API v3 및 Firebase Realtime Database 인스턴스를 제공하는 Hilt 모듈.
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    private const val YOUTUBE_API_KEY = "AIzaSyBhzKfwv-q8rb0dGrL1lLenQLridONeStA"
 
     @Provides
     @Singleton
@@ -31,7 +30,7 @@ object NetworkModule {
             GsonFactory.getDefaultInstance(),
             null
         ).setApplicationName("MusicLog")
-            .setYouTubeRequestInitializer(YouTubeRequestInitializer(YOUTUBE_API_KEY))
+            .setYouTubeRequestInitializer(YouTubeRequestInitializer(BuildConfig.YOUTUBE_API_KEY))
             .build()
     }
 }
