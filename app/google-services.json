@@ -1,15 +1,16 @@
 {
   "project_info": {
     "project_number": "532189733637",
+    "firebase_url": "https://musiclog-78c69-default-rtdb.firebaseio.com",
     "project_id": "musiclog-78c69",
     "storage_bucket": "musiclog-78c69.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:532189733637:android:f197acd55afcd41e7d8d6c",
+        "mobilesdk_app_id": "1:532189733637:android:7c9f52fcd26a43ff7d8d6c",
         "android_client_info": {
-          "package_name": "com.example.musicLog"
+          "package_name": "com.example.musiclog"
         }
       },
       "oauth_client": [],

@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.musiclog"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -59,6 +59,15 @@ android {
         compose = true
         buildConfig = true
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/LICENSE*"
+            excludes += "/META-INF/NOTICE*"
+        }
+    }
+
 }
 
 dependencies {
