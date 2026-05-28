@@ -1,5 +1,6 @@
 package com.example.musiclog.ui.search
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,8 @@ fun SearchScreen(
 
     val searchResults by viewModel.searchResults.collectAsState() // 뷰모델의 상태 관찰
     val isLoading by viewModel.isLoading.collectAsState()
+
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
 
     Column(
         modifier = modifier
@@ -60,7 +63,15 @@ fun SearchScreen(
             ) {
                 items(searchResults) { music ->
                     Card(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                // search뷰모델을 통해 로컬 DB에 음악 로그 저장
+                                viewModel.insertMusicToLog(music)
+
+                                // 유튜브 고유 비디오 ID를 링크로 변환하여 기기 내 유튜브 앱에서 재생하는 트리거
+                                uriHandler.openUri("https://www.youtube.com/watch?v=${music.id}")
+                            }
                     ) {
                         // 💡 Row를 사용해 가로로 배치 (왼쪽: 이미지, 오른쪽: 텍스트)
                         Row(

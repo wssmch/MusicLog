@@ -16,7 +16,7 @@ class SearchViewModel @Inject constructor(
     private val repository: MusicRepository
 ) : ViewModel() {
 
-    // 검색 결과를 담는 상태 흐름 (UI가 이 변수를 관찰함)
+    // 검색 결과를 담는 상태 흐름, UI가 이 변수를 구독
     private val _searchResults = MutableStateFlow<List<Music>>(emptyList())
     val searchResults: StateFlow<List<Music>> = _searchResults.asStateFlow()
 
@@ -33,6 +33,11 @@ class SearchViewModel @Inject constructor(
             val results = repository.searchMusic(query)
             _searchResults.value = results
             _isLoading.value = false
+        }
+    }
+    fun insertMusicToLog(music: Music) {
+        viewModelScope.launch {
+            repository.insertMusic(music)
         }
     }
 }
