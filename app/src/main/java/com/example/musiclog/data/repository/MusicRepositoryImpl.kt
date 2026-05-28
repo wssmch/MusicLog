@@ -1,7 +1,10 @@
 package com.example.musiclog.data.repository
 
+import android.content.ClipData.newUri
 import com.example.musiclog.data.local.MusicDao
 import com.example.musiclog.data.mapper.toDomain
+import com.example.musiclog.data.mapper.toEntity
+import com.example.musiclog.data.remote.FirebaseClient
 import com.example.musiclog.domain.model.Music
 import com.example.musiclog.domain.repository.MusicRepository
 import com.google.api.services.youtube.YouTube
@@ -14,17 +17,18 @@ import kotlinx.coroutines.withContext
 
 @Singleton
 class MusicRepositoryImpl @Inject constructor(
-    private val musicDao : MusicDao,
-    private val youtubeService: YouTube// 추후에 NetworkModule의 YouTube, Firebase 객체도 이곳에 주입해 조립해야함.
+    private val musicDao: MusicDao,
+    private val youtubeService: YouTube, // 추후에 NetworkModule의 YouTube, Firebase 객체도 이곳에 주입해 조립해야함
+    private val firebaseClient: FirebaseClient
 ) : MusicRepository {
 
-    override fun getAllMusic() : Flow<List<Music>> { // 로컬 엔티티 스트림을 받아 도메인 모델 스트림으로 가공 변환
+    override fun getAllMusic(): Flow<List<Music>> { // 로컬 엔티티 스트림을 받아 도메인 모델 스트림으로 가공 변환
         return musicDao.getAllMusic().map { entities ->
             entities.map { it.toDomain() } // it = MusicEntity
         }
     }
 
-    override suspend fun searchMusic(query : String) : List<Music> {
+    override suspend fun searchMusic(query: String): List<Music> {
         return withContext(Dispatchers.IO) {
             try {
                 // 1. YouTube API 검색 요청 세팅 (100 유닛 소모)
@@ -60,15 +64,31 @@ class MusicRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun incrementPlayCount(musicId : String) {
-        musicDao.incrementPlayCount(musicId, System.currentTimeMillis())
+    override suspend fun insertMusic(music: Music) {
+        withContext(Dispatchers.IO) {
+            musicDao.insertMusic(music.toEntity())
+        }
     }
 
-    override suspend fun updateAlbumArt(musicId : String, newUri : String) {
-        musicDao.updateAlbumArt(musicId, newUri)
+    override suspend fun incrementPlayCount(musicId: String) { // 기존 로컬 db카운터만 업데이트하는 로직에서 로컬과 원격을 동기화하도록 수정
+        withContext(Dispatchers.IO) {
+            musicDao.incrementPlayCount(musicId, System.currentTimeMillis())
+            val entity = musicDao.getMusicById(musicId)
+            entity?.let {
+                firebaseClient.incrementArtistPlayCount(it.artist)
+            }
+        }
     }
 
-    override suspend fun getTopMusic(limit : Int) : List<Music> {
-        return musicDao.getTopMusic(limit).map { it.toDomain() }
+    override suspend fun updateAlbumArt(musicId: String, newUri: String) {
+        withContext(Dispatchers.IO) {
+            musicDao.updateAlbumArt(musicId, newUri)
+        }
+    }
+
+    override suspend fun getTopMusic(limit: Int): List<Music> {
+        return withContext(Dispatchers.IO) {
+            musicDao.getTopMusic(limit).map { it.toDomain() }
+        }
     }
 }

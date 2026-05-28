@@ -9,9 +9,9 @@ interface MusicRepository{
                                          // domain 레이어에서는 MusicEntity로 바꾸면 도메인 레이어가 데이터 레이어(room변수)에세
                                          // 의존하게 되어 계층 구조의 분리가 깨짐
     suspend fun searchMusic(query : String) : List<Music>
-
     suspend fun incrementPlayCount(musicId : String)
     suspend fun updateAlbumArt(musicId : String, newUri : String)
 
     suspend fun getTopMusic(limit : Int) : List<Music> //나중에 구현할 리캡 탭을 누르면 재생횟수가 높은 곡들을 출력
+    suspend fun insertMusic(music : Music) // search뷰모델에서 사용자가 검색결과의 특정 카드를 선택할때 데이터 계층에 저장을 지시
 }

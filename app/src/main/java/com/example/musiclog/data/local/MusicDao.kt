@@ -23,4 +23,9 @@ interface MusicDao{
 
     @Query("SELECT * FROM music_table ORDER BY playCount DESC LIMIT :limit")
     suspend fun getTopMusic(limit : Int) : List<MusicEntity> // 리캡 용으로 재생횟수를 내림차순(DESC)으로 정렬하여 원하는 개수만큼 반환.
+
+    @Query("SELECT * FROM music_table WHERE id = :musicId LIMIT 1")
+    suspend fun getMusicById(musicId: String): MusicEntity? // 곡의 재생횟수가 증가할 때 id를 통해 로컬 DB에서 artist를 역조회하여 파이어베이스에
+                                                            // 동기화 데이터로 넘길때 필요
+
 }
