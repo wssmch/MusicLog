@@ -32,7 +32,6 @@ android {
     }
 
     defaultConfig {
-        // 기존에 minSdk나 targetSdk가 다른 곳에 적혀있다면 굳이 안 옮기셔도 됩니다.
 
         // 키를 읽어와서 바인딩하는 코드 추가
         val youtubeKey = localProperties.getProperty("YOUTUBE_API_KEY") ?: ""
@@ -103,9 +102,12 @@ dependencies {
     implementation(libs.google.api.client.android)
     implementation(libs.google.api.client.gson)
 
+    implementation(libs.androidx.hilt.navigation.compose)
+
     implementation(libs.coil.compose)
 
     implementation(libs.androidx.navigation.compose)
+
 
 }
 

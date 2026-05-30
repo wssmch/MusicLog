@@ -20,12 +20,11 @@ object DBModule {
     @Singleton
     fun provideMusicDataBase(
         @ApplicationContext context: Context
-    ) : MusicDatabase {
+    ): MusicDatabase {
         return Room.databaseBuilder(
-            context,
-            MusicDatabase::class.java,
-            "music_log_db"
-        ).build()
+            context, MusicDatabase::class.java, "music_database"
+        ).fallbackToDestructiveMigration() // 이 파이프라인 메서드가 추가되어야 마이그레이션 예외로 인한 앱 종료가 방지됨.
+            .build()
     }
 
     @Provides

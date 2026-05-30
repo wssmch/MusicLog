@@ -19,6 +19,7 @@ googleApiClient = "2.2.0"
 youtubeApi = "v3-rev20230807-2.0.0"
 coil = "2.6.0"
 navigationCompose = "2.8.1"
+hiltNavigationCompose = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -53,6 +54,8 @@ google-api-client-gson = { group = "com.google.api-client", name = "google-api-c
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.musiclog.viewmodel.DashboardUiState
 import com.example.musiclog.viewmodel.DashboardViewModel
+import androidx.compose.foundation.combinedClickable
+import com.example.musiclog.ui.playlist.PlaylistBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable

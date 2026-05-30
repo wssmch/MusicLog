@@ -23,8 +23,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.musiclog.viewmodel.PlaylistViewModel
 
-// 도메인 구조가 확립되기 전 UI 테스트를 위한 임시 데이터 클래스
 data class DummyPlaylist(
     val id: String,
     val title: String,
@@ -36,13 +36,17 @@ data class DummyPlaylist(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistScreen(
+    viewModel: PlaylistViewModel,
     onNavigateToDashboard: () -> Unit,
+    onNavigateToDetail: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var targetPlaylistIdForArt by remember { mutableStateOf<String?>(null) }
+    var showAddPlaylistDialog by remember { mutableStateOf(false) }
 
-    // 재생목록 대표 이미지 설정을 위한 갤러리 액티비티 호출 컨트랙트
+    val dummyPlaylists by viewModel.playlists.collectAsState()
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -56,17 +60,41 @@ fun PlaylistScreen(
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-                // TODO: 뷰모델을 통해 로컬 DB의 재생목록 커버 이미지 경로 업데이트 로직 연동 필요
+                viewModel.updatePlaylistCover(playlistId, selectedImageUri.toString())
             }
         }
     }
 
-    // UI 렌더링을 위한 임시 더미 데이터 배열
-    val dummyPlaylists = remember {
-        listOf(
-            DummyPlaylist("1", "좋아요 표시한 음악", 78, null, true),
-            DummyPlaylist("2", "E", 57, "https://picsum.photos/seed/2/300/300", false),
-            DummyPlaylist("3", "s", 22, "https://picsum.photos/seed/3/300/300", false)
+    if (showAddPlaylistDialog) {
+        var newPlaylistName by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showAddPlaylistDialog = false },
+            title = { Text("새 재생목록 만들기") },
+            text = {
+                OutlinedTextField(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    label = { Text("재생목록 이름") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                // 💡 해결: 입력 문자열 공백 유효성 검증 후 뷰모델의 DB 생성 로직을 정상 호출하도록 바인딩
+                TextButton(onClick = {
+                    if (newPlaylistName.isNotBlank()) {
+                        viewModel.createPlaylist(newPlaylistName)
+                    }
+                    showAddPlaylistDialog = false
+                }) {
+                    Text("생성")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddPlaylistDialog = false }) {
+                    Text("취소")
+                }
+            }
         )
     }
 
@@ -83,7 +111,7 @@ fun PlaylistScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* TODO: 새 재생목록 생성 다이얼로그 호출 로직 */ },
+                onClick = { showAddPlaylistDialog = true },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "새 재생목록 생성")
@@ -104,9 +132,13 @@ fun PlaylistScreen(
             items(dummyPlaylists) { playlist ->
                 PlaylistItemCard(
                     playlist = playlist,
+                    onClick = { onNavigateToDetail(playlist.id) },
                     onEditImageClick = {
                         targetPlaylistIdForArt = playlist.id
                         galleryLauncher.launch("image/*")
+                    },
+                    onDeleteClick = {
+                        viewModel.deletePlaylist(playlist.id)
                     }
                 )
             }
@@ -117,14 +149,16 @@ fun PlaylistScreen(
 @Composable
 fun PlaylistItemCard(
     playlist: DummyPlaylist,
-    onEditImageClick: () -> Unit
+    onClick: () -> Unit,
+    onEditImageClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: 재생목록 상세 화면 진입 라우팅 */ },
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.Start
     ) {
         Box(
@@ -134,7 +168,6 @@ fun PlaylistItemCard(
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            // 재생목록 커버 이미지
             if (playlist.coverUri != null) {
                 AsyncImage(
                     model = playlist.coverUri,
@@ -143,7 +176,6 @@ fun PlaylistItemCard(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // 커버 이미지가 없을 경우 대체 UI
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = null,
@@ -154,7 +186,6 @@ fun PlaylistItemCard(
                 )
             }
 
-            // 우측 상단 3점 메뉴 (Kebab Menu)
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -181,13 +212,6 @@ fun PlaylistItemCard(
                     onDismissRequest = { expanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("재생목록 수정") },
-                        onClick = {
-                            expanded = false
-                            // TODO: 이름 수정 등 다이얼로그 호출
-                        }
-                    )
-                    DropdownMenuItem(
                         text = { Text("대표 이미지 설정") },
                         onClick = {
                             expanded = false
@@ -199,7 +223,7 @@ fun PlaylistItemCard(
                             text = { Text("재생목록 삭제", color = MaterialTheme.colorScheme.error) },
                             onClick = {
                                 expanded = false
-                                // TODO: 삭제 확인 다이얼로그 호출
+                                onDeleteClick()
                             }
                         )
                     }
@@ -208,16 +232,7 @@ fun PlaylistItemCard(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = playlist.title,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1
-        )
-        Text(
-            text = "트랙 ${playlist.trackCount}개",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.secondary
-        )
+        Text(text = playlist.title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        Text(text = "트랙 ${playlist.trackCount}개", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
     }
 }

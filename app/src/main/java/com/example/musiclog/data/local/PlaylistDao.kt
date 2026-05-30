@@ -19,9 +19,17 @@ interface PlaylistDao {
     @Query("SELECT * FROM playlist_table ORDER BY createdAt DESC")
     fun getPlaylistsWithMusic(): Flow<List<PlaylistWithMusic>>
 
+    @Transaction
+    @Query("SELECT * FROM playlist_table WHERE playlistId = :id")
+    fun getPlaylistWithMusicById(id: String): Flow<PlaylistWithMusic?>
+
     @Query("UPDATE playlist_table SET coverUri = :newUri WHERE playlistId = :id")
     suspend fun updatePlaylistCover(id: String, newUri: String)
 
     @Query("DELETE FROM playlist_table WHERE playlistId = :id")
     suspend fun deletePlaylist(id: String)
+
+    @Query("DELETE FROM playlist_music_cross_ref WHERE playlistId = :playlistId AND musicId = :musicId")
+    suspend fun deletePlaylistMusicCrossRef(playlistId: String, musicId: String)
+
 }
