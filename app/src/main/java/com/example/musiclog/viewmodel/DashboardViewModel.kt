@@ -32,6 +32,13 @@ class DashboardViewModel @Inject constructor(
             repository.incrementPlayCount(musicId)
         }
     }
+
+    fun updateMusicAlbumArt(musicId: String, newUri: String) {
+        viewModelScope.launch {
+            repository.updateAlbumArt(musicId, newUri)
+        }
+    }
+
 }
 
 

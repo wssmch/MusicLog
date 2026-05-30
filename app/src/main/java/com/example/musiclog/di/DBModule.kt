@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.musiclog.data.local.MusicDao
 import com.example.musiclog.data.local.MusicDatabase
+import com.example.musiclog.data.local.PlaylistDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,5 +32,10 @@ object DBModule {
     @Singleton
     fun provideMusicDao(database: MusicDatabase): MusicDao {
         return database.musicDao()
+    }
+
+    @Provides
+    fun providePlaylistDao(database: MusicDatabase): PlaylistDao {
+        return database.playlistDao()
     }
 }

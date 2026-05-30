@@ -43,7 +43,7 @@ class MusicRepositoryImpl @Inject constructor(
 
                 // 3. SearchResult(구글 DTO) -> Music(앱 도메인 모델) 변환
                 items.mapNotNull { result ->
-                    val videoId = result.id?.videoId ?: return@mapNotNull null // 영상 ID가 없으면 버림
+                    val videoId = result.id?.videoId ?: return@mapNotNull null
                     val snippet = result.snippet ?: return@mapNotNull null
 
                     Music(
@@ -52,7 +52,7 @@ class MusicRepositoryImpl @Inject constructor(
                         artist = snippet.channelTitle ?: "알 수 없는 아티스트",
                         albumArtUrl = snippet.thumbnails?.high?.url ?: "",
                         customAlbumArtUri = null,
-                        playCount = 0, // 검색 직후이므로 재생 횟수는 0
+                        playCount = 1, // 최초 로깅 및 재생 인텐트 호출 시점의 정합성을 위해 1로 초기화
                         lastPlayedTimeStamp = System.currentTimeMillis()
                     )
                 }
