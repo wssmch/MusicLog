@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.example.musiclog.viewmodel.ArtistRanking
 import com.example.musiclog.viewmodel.RankUiState
 import com.example.musiclog.viewmodel.RankViewModel
-
+import androidx.compose.material.icons.filled.Refresh
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RankScreen(
@@ -30,10 +30,13 @@ fun RankScreen(
                 title = { Text("글로벌 팬덤 랭킹", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateToDashboard) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "뒤로가기"
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
+                    }
+                },
+                // 💡 상단 우측에 새로고침 액션 버튼 신규 배치
+                actions = {
+                    IconButton(onClick = { viewModel.refreshRankings() }) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "새로고침")
                     }
                 }
             )
@@ -50,39 +53,23 @@ fun RankScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 is RankUiState.Error -> {
-                    Text(
-                        text = state.message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Text(text = state.message, color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
                 }
                 is RankUiState.Success -> {
                     val rankings = state.rankings
                     val myUuid = state.myUuid
 
                     if (rankings.isEmpty()) {
-                        Text(
-                            text = "집계된 글로벌 랭킹 데이터가 없습니다.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        Text(text = "집계된 글로벌 랭킹 데이터가 없습니다.", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.align(Alignment.Center))
                     } else {
                         LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             item { Spacer(modifier = Modifier.height(4.dp)) }
-
                             itemsIndexed(rankings) { index, ranking ->
-                                RankArtistItem(
-                                    rank = index + 1,
-                                    ranking = ranking,
-                                    myUuid = myUuid
-                                )
+                                RankArtistItem(rank = index + 1, ranking = ranking, myUuid = myUuid)
                             }
-
                             item { Spacer(modifier = Modifier.height(16.dp)) }
                         }
                     }
@@ -93,29 +80,25 @@ fun RankScreen(
 }
 
 @Composable
-fun RankArtistItem(
-    rank: Int,
-    ranking: ArtistRanking,
-    myUuid: String
-) {
-    val listenersMap = ranking.listeners
-    val totalListeners = listenersMap.size
+fun RankArtistItem(rank: Int, ranking: ArtistRanking, myUuid: String) {
+    val listenersList = ranking.listeners
+    val totalListeners = listenersList.size
+    val myProfile = listenersList.find { it.uid == myUuid }
 
-    // 클라이언트 사이드 백분위 정밀 연산식 적용
-    // 공식: 백분위 = (1.0 - (나보다 청취 횟수가 적은 유저 수 / 전체 청취자 수)) * 100
-    val percentileText = if (totalListeners > 0 && listenersMap.containsKey(myUuid)) {
-        val myPlayCount = listenersMap[myUuid] ?: 0L
-        val fewerCount = listenersMap.values.count { it < myPlayCount }
+    // 💡 변환된 데이터 모델 연산 로직 정합성 확보
+    val percentileText = if (totalListeners > 0 && myProfile != null) {
+        val myPlayCount = myProfile.playCount
+        val fewerCount = listenersList.count { it.playCount < myPlayCount }
         val percentile = (1.0 - (fewerCount.toDouble() / totalListeners.toDouble())) * 100.0
-        String.format("상위 %.1f%%", percentile)
+        // Locale.getDefault()를 명시하여 다국어 포맷팅 경고 해결
+        String.format(java.util.Locale.getDefault(), "상위 %.1f%%", percentile)
     } else {
         "데이터 없음"
     }
 
-    // 유튜브 뮤직 스타일 고유 기여도 뱃지 판정 규칙
-    val badgeName = if (percentileText != "데이터 없음") {
-        val myPlayCount = listenersMap[myUuid] ?: 0L
-        val fewerCount = listenersMap.values.count { it < myPlayCount }
+    val badgeName = if (percentileText != "데이터 없음" && myProfile != null) {
+        val myPlayCount = myProfile.playCount
+        val fewerCount = listenersList.count { it.playCount < myPlayCount }
         val percentile = (1.0 - (fewerCount.toDouble() / totalListeners.toDouble())) * 100.0
         when {
             percentile <= 1.0 -> " 명예의 전당 뱃지"
@@ -129,53 +112,31 @@ fun RankArtistItem(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "${rank}위",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.width(45.dp)
-            )
-
+            Text(text = "${rank}위", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(45.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = ranking.artistName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = ranking.artistName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // 💡 해결: 기여도가 가장 높은 탑 리스너의 실제 Firestore 매핑 닉네임 문자열 출력 구역 개설
+                val topListener = listenersList.maxByOrNull { it.playCount }
+                if (topListener != null) {
+                    Text(text = "👑 탑 리스너: ${topListener.nickname} (${topListener.playCount}회)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text(badgeName) },
-                        modifier = Modifier.height(24.dp)
-                    )
+                    SuggestionChip(onClick = {}, label = { Text(badgeName) }, modifier = Modifier.height(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = percentileText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(text = percentileText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Medium)
                 }
             }
-
-            Text(
-                text = "🎧 ${ranking.totalPlayCount}회",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Text(text = "🎧 ${ranking.totalPlayCount}회", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
     }
 }

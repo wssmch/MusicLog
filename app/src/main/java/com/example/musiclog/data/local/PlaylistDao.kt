@@ -10,9 +10,12 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PlaylistDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMusic(music: MusicEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylist(playlist: PlaylistEntity)
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylistMusicCrossRef(crossRef: PlaylistMusicCrossRef)
 
     @Transaction

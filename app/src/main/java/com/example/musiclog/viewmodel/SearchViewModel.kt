@@ -35,9 +35,17 @@ class SearchViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
+
     fun insertMusicToLog(music: Music) {
         viewModelScope.launch {
             repository.insertMusic(music)
+        }
+    }
+
+    // 💡 검색 화면 내 옵션 시트(앨범 아트 변경)를 안전하게 처리하기 위한 신규 확장 함수
+    fun updateMusicAlbumArt(musicId: String, newUri: String) {
+        viewModelScope.launch {
+            repository.updateAlbumArt(musicId, newUri)
         }
     }
 }

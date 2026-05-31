@@ -108,6 +108,11 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
 
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.kotlinx.coroutines.play.services)
+
+
 
 }
 

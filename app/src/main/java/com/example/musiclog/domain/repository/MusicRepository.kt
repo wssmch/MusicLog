@@ -14,4 +14,8 @@ interface MusicRepository{
 
     suspend fun getTopMusic(limit : Int) : List<Music> //나중에 구현할 리캡 탭을 누르면 재생횟수가 높은 곡들을 출력
     suspend fun insertMusic(music : Music) // search뷰모델에서 사용자가 검색결과의 특정 카드를 선택할때 데이터 계층에 저장을 지시
+
+    suspend fun restoreCloudDataToLocal()
+
+    suspend fun backupLocalDataToCloud()
 }

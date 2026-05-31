@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add // 💡 신규 임포트
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +35,68 @@ fun PlaylistDetailScreen(
     val detailState by viewModel.getPlaylistDetail(playlistId).collectAsState(initial = null)
     val uriHandler = LocalUriHandler.current
 
+    // 💡 해결: 상세 화면 전용 내부 트랙 추가 다이얼로그 제어 상태 변수 레이어 가동
+    var showAddMusicDialog by remember { mutableStateOf(false) }
+    val allMusicLog by viewModel.getAllMusicLog().collectAsState(initial = emptyList())
+
+    if (showAddMusicDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddMusicDialog = false },
+            title = { Text("재생목록에 곡 추가") },
+            text = {
+                if (allMusicLog.isEmpty()) {
+                    Text("로컬에 저장된 음악 로그 데이터가 없습니다. 먼저 홈이나 검색에서 음악을 재생해 보세요.")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(allMusicLog) { music ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.addMusicToPlaylist(playlistId, music)
+                                        showAddMusicDialog = false
+                                    }
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AsyncImage(
+                                    model = music.customAlbumArtUri ?: music.albumArtUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(4.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = music.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = music.artist,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAddMusicDialog = false }) { Text("닫기") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -41,6 +104,12 @@ fun PlaylistDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
+                    }
+                },
+                // 💡 해결: 수동으로 트랙을 관계형 테이블 구조에 매핑 인서트할 수 있는 TopAppBar 액션 버튼 개설
+                actions = {
+                    IconButton(onClick = { showAddMusicDialog = true }) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "곡 추가")
                     }
                 }
             )
@@ -66,7 +135,6 @@ fun PlaylistDetailScreen(
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // 상단 대형 대표 이미지 헤더 영역
                         item {
                             Column(
                                 modifier = Modifier
@@ -91,12 +159,10 @@ fun PlaylistDetailScreen(
                             }
                         }
 
-                        // 수직 곡 목록 리스트 렌더링
                         items(detail.songs) { music ->
                             DetailMusicItemRow(
                                 music = music,
                                 onClick = {
-                                    // TODO: 개별 프로젝트 명세에 부합하는 가동 로그 누적 메서드 연결 가능
                                     uriHandler.openUri("https://www.youtube.com/watch?v=${music.id}")
                                 },
                                 onRemoveClick = {

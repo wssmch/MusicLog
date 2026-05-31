@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.musiclog.data.local.PlaylistDao
 import com.example.musiclog.data.local.PlaylistEntity
 import com.example.musiclog.data.local.PlaylistWithMusic
+import com.example.musiclog.data.mapper.toDomain // 💡 확장 변환 함수 임포트
 import com.example.musiclog.ui.playlist.DummyPlaylist
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,6 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
-// 재생목록 상세 화면용 UI 도메인 상태 모델
 data class PlaylistDetailUiState(
     val id: String,
     val title: String,
@@ -30,7 +30,6 @@ class PlaylistViewModel @Inject constructor(
     private val playlistDao: PlaylistDao
 ) : ViewModel() {
 
-    // 💡 기존 주입 구조를 유지하기 위해 필드 주입(Field Injection)으로 MusicDao 확보
     @Inject
     lateinit var musicDao: com.example.musiclog.data.local.MusicDao
 
@@ -51,6 +50,13 @@ class PlaylistViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    // 💡 해결: 상세 화면 내 곡 추가 다이얼로그 공급용 전체 음악 데이터 소스 스트림 생성 함수 추가
+    fun getAllMusicLog(): Flow<List<com.example.musiclog.domain.model.Music>> {
+        return musicDao.getAllMusic().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
 
     fun getPlaylistDetail(playlistId: String): Flow<PlaylistDetailUiState?> {
         return playlistDao.getPlaylistWithMusicById(playlistId).map { relation ->
@@ -88,7 +94,6 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
-    // 💡 곡 추가 비즈니스 로직 신규 구현 (로컬 DB 엔티티 생성 및 다대다 교차 참조 레코드 생성)
     fun addMusicToPlaylist(playlistId: String, music: com.example.musiclog.domain.model.Music) {
         viewModelScope.launch(Dispatchers.IO) {
             val musicEntity = com.example.musiclog.data.local.MusicEntity(
