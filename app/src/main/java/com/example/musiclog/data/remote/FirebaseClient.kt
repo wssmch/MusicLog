@@ -13,13 +13,15 @@ class FirebaseClient @Inject constructor() {
     private val database = FirebaseDatabase.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
-    // 1. 글로벌 랭킹 카운트 증가
-    fun incrementArtistPlayCount(artistName: String, uid: String) {
+    // 💡 1. 핵심 수정: 맹목적 +1 연산을 폐기하고, 로컬 무결성 기반의 절대값 동기화(Self-Healing) 적용
+    fun syncArtistPlayCount(artistName: String, uid: String, absolutePlayCount: Int) {
         if (artistName.isBlank() || uid.isBlank()) return
 
         val baseRef = database.getReference("rankings").child(artistName)
         baseRef.child("totalPlayCount").setValue(ServerValue.increment(1))
-        baseRef.child("listeners").child(uid).setValue(ServerValue.increment(1))
+
+        // 누수된 카운트를 무시하고 폰에 저장된 진짜 재생 횟수(16회)로 서버 데이터를 강제 교정
+        baseRef.child("listeners").child(uid).setValue(absolutePlayCount)
     }
 
     // 2. 플레이리스트 클라우드 백업 (업로드)
@@ -99,5 +101,12 @@ class FirebaseClient @Inject constructor() {
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    fun incrementUserTotalPlayCount(uid: String, nickname: String) {
+        if (uid.isBlank()) return
+        val baseRef = database.getReference("users_ranking").child(uid)
+        baseRef.child("nickname").setValue(nickname)
+        baseRef.child("totalPlayCount").setValue(ServerValue.increment(1))
     }
 }

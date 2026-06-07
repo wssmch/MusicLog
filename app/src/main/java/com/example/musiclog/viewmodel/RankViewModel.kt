@@ -73,21 +73,24 @@ open class RankViewModel @Inject constructor() : ViewModel() {
                         val totalPlayCount = artistSnapshot.child("totalPlayCount").getValue(Long::class.java) ?: 0L
                         val listenersSnapshot = artistSnapshot.child("listeners")
 
-                        // 변경점: 내가 청취한 기록이 없는 아티스트는 랭킹 리스트에서 제외
                         if (!listenersSnapshot.hasChild(myUuid)) continue
 
                         val listenersList = mutableListOf<ListenerProfile>()
 
                         for (listener in listenersSnapshot.children) {
                             val uid = listener.key ?: continue
-                            val count = listener.getValue(Long::class.java) ?: 0L
+
+                            // 💡 수정됨: 파싱 크래시를 방지하기 위한 안전한 데이터 추출 로직
+                            val count = listener.child("playCount").getValue(Long::class.java)
+                                ?: listener.getValue(Long::class.java)
+                                ?: 0L
 
                             val nickname = if (nicknameCache.containsKey(uid)) {
                                 nicknameCache[uid].orEmpty()
                             } else {
                                 try {
                                     val document = firestore.collection("users").document(uid).get().await()
-                                    val name = document.getString("nickname") ?: "알 수 없는 리스너"
+                                    val name = document.getString("nickname") ?: "일반 리스너"
                                     nicknameCache[uid] = name
                                     name
                                 } catch (e: Exception) {
@@ -100,6 +103,9 @@ open class RankViewModel @Inject constructor() : ViewModel() {
                             )
                         }
 
+                        // 해당 아티스트 내에서 리스너들의 랭킹(내림차순) 정렬 보장
+                        listenersList.sortByDescending { it.playCount }
+
                         rankingList.add(
                             ArtistRanking(
                                 artistName = artistName,
@@ -109,7 +115,6 @@ open class RankViewModel @Inject constructor() : ViewModel() {
                         )
                     }
 
-                    // 변경점: 사용자 본인의 재생 횟수를 기준으로 내림차순 정렬
                     val sortedList = rankingList.sortedByDescending { ranking ->
                         ranking.listeners.find { it.uid == myUuid }?.playCount ?: 0L
                     }

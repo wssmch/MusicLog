@@ -24,10 +24,15 @@ fun RankScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // LaunchedEffect 스코프 배치를 통해 화면 최초 컴포지션 시점에 비동기 동기화 자동 트리거
+    LaunchedEffect(Unit) {
+        viewModel.refreshRankings()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("글로벌 팬덤 랭킹", fontWeight = FontWeight.Bold) },
+                title = { Text("글로벌 랭킹", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateToDashboard) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
@@ -85,29 +90,38 @@ fun RankArtistItem(rank: Int, ranking: ArtistRanking, myUuid: String) {
     val totalListeners = listenersList.size
     val myProfile = listenersList.find { it.uid == myUuid }
 
-    // 💡 변환된 데이터 모델 연산 로직 정합성 확보
-    val percentileText = if (totalListeners > 0 && myProfile != null) {
-        val myPlayCount = myProfile.playCount
-        val fewerCount = listenersList.count { it.playCount < myPlayCount }
-        val percentile = (1.0 - (fewerCount.toDouble() / totalListeners.toDouble())) * 100.0
-        // Locale.getDefault()를 명시하여 다국어 포맷팅 경고 해결
-        String.format(java.util.Locale.getDefault(), "상위 %.1f%%", percentile)
-    } else {
-        "데이터 없음"
-    }
+    // 💡 백분율 수학 연산 오류 수정
+    val percentileText: String
+    val badgeName: String
 
-    val badgeName = if (percentileText != "데이터 없음" && myProfile != null) {
+    if (totalListeners > 0 && myProfile != null) {
         val myPlayCount = myProfile.playCount
-        val fewerCount = listenersList.count { it.playCount < myPlayCount }
-        val percentile = (1.0 - (fewerCount.toDouble() / totalListeners.toDouble())) * 100.0
-        when {
-            percentile <= 1.0 -> " 명예의 전당 뱃지"
-            percentile <= 5.0 -> " 골드 스트리머 뱃지"
-            percentile <= 10.0 -> " 실버 리스너 뱃지"
-            else -> " 일반 청취 리스너"
+
+        // 나보다 재생 횟수가 많은(뛰어난) 사람의 수 카운팅
+        val betterCount = listenersList.count { it.playCount > myPlayCount }
+        val myRank = betterCount + 1 // 1등이면 betterCount가 0이므로 내 등수는 1
+
+        // 💡 수정됨: 모수가 적을 때 발생하는 백분율 왜곡 방지 및 1등 절대 보장 로직
+        val percentile = when {
+            totalListeners == 1 -> 1.0 // 나 혼자면 1% (명예의 전당)
+            myRank == 1 -> 1.0 // 전체 인원이 몇 명이든 내가 1등이면 무조건 1.0% 고정
+            else -> {
+                // 1등이 아닌 경우: (나를 이긴 사람 수 / 전체 인원) * 100
+                // 예: 10명 중 2등이면 (1 / 10) * 100 = 10.0% (실버 리스너)
+                (betterCount.toDouble() / totalListeners.toDouble()) * 100.0
+            }
+        }
+
+        percentileText = String.format(java.util.Locale.getDefault(), "상위 %.1f%%", percentile)
+        badgeName = when {
+            percentile <= 1.0 -> "🏆 명예의 전당"
+            percentile <= 5.0 -> "🥇 골드 리스너"
+            percentile <= 10.0 -> "🥈 실버 리스너"
+            else -> "🎧 일반 리스너"
         }
     } else {
-        "미집계 리스너"
+        percentileText = "데이터 없음"
+        badgeName = "미집계 리스너"
     }
 
     Card(
@@ -118,15 +132,23 @@ fun RankArtistItem(rank: Int, ranking: ArtistRanking, myUuid: String) {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // 좌측: 내 관심도 순위 (내가 좋아하는 아티스트 1위, 2위...)
             Text(text = "${rank}위", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(45.dp))
+
             Column(modifier = Modifier.weight(1f)) {
+                // 아티스트 명
                 Text(text = ranking.artistName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // 💡 해결: 기여도가 가장 높은 탑 리스너의 실제 Firestore 매핑 닉네임 문자열 출력 구역 개설
-                val topListener = listenersList.maxByOrNull { it.playCount }
-                if (topListener != null) {
-                    Text(text = "👑 탑 리스너: ${topListener.nickname} (${topListener.playCount}회)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                // 최고 점수를 구한 뒤, 그 점수를 가진 모든 동점자를 리스트로 묶어 공동 출력
+                val maxPlayCount = listenersList.maxOfOrNull { it.playCount } ?: 0L
+                val topListeners = listenersList.filter { it.playCount == maxPlayCount && maxPlayCount > 0 }
+
+                if (topListeners.isNotEmpty()) {
+                    val topNames = topListeners.joinToString(", ") { it.nickname }
+                    Text(text = "👑 탑 팬: $topNames (${maxPlayCount}회)",
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.primary)
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -136,7 +158,8 @@ fun RankArtistItem(rank: Int, ranking: ArtistRanking, myUuid: String) {
                     Text(text = percentileText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Medium)
                 }
             }
-            Text(text = "🎧 ${ranking.totalPlayCount}회", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            // 우측: 이 아티스트에 대한 나의 재생 횟수
+            Text(text = "🎧 ${myProfile?.playCount ?: 0}회", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
     }
 }

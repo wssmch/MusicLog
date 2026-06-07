@@ -157,6 +157,7 @@ fun AuthScreen(
                                 Toast.makeText(context, "로그인 성공!", Toast.LENGTH_SHORT).show()
                                 // 💡 위치 2: 기존 계정 로그인 성공 시 기기에 계정 정보 저장
                                 AccountPrefsManager.saveAccount(context, email.trim(), password)
+                                context.getSharedPreferences("music_player_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
                                 onAuthSuccess()
                             } catch (e: FirebaseAuthInvalidUserException) {
                                 isLoading = false

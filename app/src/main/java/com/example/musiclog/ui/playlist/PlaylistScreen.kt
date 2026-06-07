@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.musiclog.domain.model.Music
 import com.example.musiclog.viewmodel.PlaylistViewModel
 
 data class DummyPlaylist(
@@ -39,6 +40,7 @@ fun PlaylistScreen(
     viewModel: PlaylistViewModel,
     onNavigateToDashboard: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
+    onPlayMusic: (Music, List<Music>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current

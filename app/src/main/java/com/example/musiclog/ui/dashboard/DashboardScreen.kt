@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import com.example.musiclog.utils.NetworkUtils
 import androidx.compose.runtime.LaunchedEffect
+import com.example.musiclog.domain.model.Music
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -39,13 +40,16 @@ fun DashboardScreen(
     onNavigateToRanking: () -> Unit,
     onNavigateToPlayCount: () -> Unit,
     onNavigateToPlaylist: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPlayMusic: (Music, List<Music>) -> Unit
 ) {
 
     LaunchedEffect(Unit) {
         android.util.Log.d("test", "DashboardScreen: LaunchedEffect 진입, 동기화 함수 호출함")
         dashboardViewModel.syncAndLoadUserData()
     }
+
+
 
     val playlistViewModel: com.example.musiclog.viewmodel.PlaylistViewModel = hiltViewModel()
 
@@ -118,7 +122,17 @@ fun DashboardScreen(
         modifier = modifier.navigationBarsPadding(),
         topBar = {
             TopAppBar(
-                title = { Text("MusicLog", fontWeight = FontWeight.Bold) },
+                title = {
+                    Column {
+                        Text("MusicLog", fontWeight = FontWeight.Bold)
+                        // 💡 5번 요구사항: 현재 로그인된 이메일을 서브타이틀로 노출
+                        Text(
+                            text = dashboardViewModel.currentUserEmail,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
                 actions = {
                     Button(onClick = {
                         // 💡 검색 화면 진입 전 네트워크 검사
@@ -135,9 +149,10 @@ fun DashboardScreen(
                     // 신규 추가: 로그아웃 버튼 및 Activity 완전 재시작 로직
                     IconButton(
                         onClick = {
-                            // 뷰모델의 데이터베이스 초기화 로직 호출
+                            // 💡 핵심 버그 수정: 로그아웃 즉시 하단 바(미니플레이어) 임시 기억장치 파기
+                            context.getSharedPreferences("music_player_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+
                             dashboardViewModel.logoutAndClearData {
-                                // 초기화가 완료되면 Activity 완전 재시작을 통해 AuthScreen으로 튕겨냄
                                 val intent = android.content.Intent(context, com.example.musiclog.MainActivity::class.java).apply {
                                     flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 }
@@ -145,11 +160,7 @@ fun DashboardScreen(
                             }
                         }
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "로그아웃",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "로그아웃", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             )
@@ -273,10 +284,8 @@ fun DashboardScreen(
                                                     .combinedClickable(
                                                         onClick = {
                                                             if (!music.id.startsWith("dummy")) {
-                                                                dashboardViewModel.incrementMusicPlayCount(
-                                                                    music.id
-                                                                )
-                                                                uriHandler.openUri("https://www.youtube.com/watch?v=${music.id}")
+                                                                // 💡 삭제된 뷰모델 호출 대신, 상위(MainActivity)의 통합 콜백으로 제어권 위임
+                                                                onPlayMusic(music, topSongs.filter { !it.id.startsWith("dummy") })
                                                             }
                                                         },
                                                         onLongClick = {

@@ -30,7 +30,8 @@ fun PlaylistDetailScreen(
     playlistId: String,
     viewModel: PlaylistViewModel,
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPlayMusic: (Music, List<Music>) -> Unit
 ) {
     val detailState by viewModel.getPlaylistDetail(playlistId).collectAsState(initial = null)
     val uriHandler = LocalUriHandler.current
@@ -39,7 +40,11 @@ fun PlaylistDetailScreen(
     var showAddMusicDialog by remember { mutableStateOf(false) }
     val allMusicLog by viewModel.getAllMusicLog().collectAsState(initial = emptyList())
 
+    // 💡 해결: 곡 다중 선택 다이얼로그 로직 적용
     if (showAddMusicDialog) {
+        // 다중 선택된 곡들을 추적하기 위한 상태 변수
+        var selectedSongs by remember { mutableStateOf(setOf<Music>()) }
+
         AlertDialog(
             onDismissRequest = { showAddMusicDialog = false },
             title = { Text("재생목록에 곡 추가") },
@@ -54,16 +59,34 @@ fun PlaylistDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(allMusicLog) { music ->
+                            val isSelected = selectedSongs.contains(music)
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        viewModel.addMusicToPlaylist(playlistId, music)
-                                        showAddMusicDialog = false
+                                        // 클릭 시 선택/해제 토글 로직
+                                        selectedSongs = if (isSelected) {
+                                            selectedSongs - music
+                                        } else {
+                                            selectedSongs + music
+                                        }
                                     }
+                                    // 선택된 곡은 배경색으로 하이라이트 표시
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                        else androidx.compose.ui.graphics.Color.Transparent
+                                    )
                                     .padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // 체크박스 추가
+                                Checkbox(
+                                    checked = isSelected,
+                                    onCheckedChange = null // 클릭 이벤트는 상위 Row에서 처리함
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+
                                 AsyncImage(
                                     model = music.customAlbumArtUri ?: music.albumArtUrl,
                                     contentDescription = null,
@@ -92,7 +115,18 @@ fun PlaylistDetailScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showAddMusicDialog = false }) { Text("닫기") }
+                TextButton(
+                    onClick = {
+                        // 💡 확인 버튼 클릭 시, 선택된 모든 곡을 한 번에 DB에 추가
+                        selectedSongs.forEach { music ->
+                            viewModel.addMusicToPlaylist(playlistId, music)
+                        }
+                        showAddMusicDialog = false
+                    }
+                ) { Text("선택 추가") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddMusicDialog = false }) { Text("취소") }
             }
         )
     }
@@ -163,7 +197,7 @@ fun PlaylistDetailScreen(
                             DetailMusicItemRow(
                                 music = music,
                                 onClick = {
-                                    uriHandler.openUri("https://www.youtube.com/watch?v=${music.id}")
+                                    onPlayMusic(music, detail.songs)
                                 },
                                 onRemoveClick = {
                                     viewModel.removeMusicFromPlaylist(detail.id, music.id)

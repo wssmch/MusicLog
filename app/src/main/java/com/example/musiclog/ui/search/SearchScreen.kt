@@ -19,14 +19,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.musiclog.domain.model.Music // 💡 Music 임포트 추가
 import com.example.musiclog.viewmodel.SearchViewModel
 import com.example.musiclog.ui.playlist.PlaylistBottomSheet
 import com.example.musiclog.ui.components.MusicOptionsBottomSheet
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel,
+    onItemClick: (Music) -> Unit, // 💡 추가점: 클릭 시 상위(MainActivity)로 데이터를 넘기기 위한 콜백
     modifier: Modifier = Modifier
 ) {
     // 💡 내부 스코프 뷰모델 조달
@@ -37,13 +43,16 @@ fun SearchScreen(
     val searchResults by viewModel.searchResults.collectAsState() // 뷰모델의 상태 관찰
     val isLoading by viewModel.isLoading.collectAsState()
 
-    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     val context = LocalContext.current
 
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+
     var targetMusicIdForArt by remember { mutableStateOf<String?>(null) }
-    var selectedMusicForOptions by remember { mutableStateOf<com.example.musiclog.domain.model.Music?>(null) }
+    var selectedMusicForOptions by remember { mutableStateOf<Music?>(null) }
     var showOptionsSheet by remember { mutableStateOf(false) }
     var showPlaylistSheet by remember { mutableStateOf(false) }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -110,10 +119,22 @@ fun SearchScreen(
                 value = query,
                 onValueChange = { query = it },
                 placeholder = { Text("검색어를 입력하세요 ") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                singleLine = true, // 💡 1번 해결: 줄바꿈 방지 및 한 줄 고정
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), // 💡 2번 해결: 키보드 엔터키를 돋보기(검색) 모양으로 변경
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        viewModel.search(query) // 엔터키 누르면 검색 실행
+                        keyboardController?.hide() // 검색 후 키보드 자동으로 내리기
+                    }
+                )
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.search(query) }) {
+            Button(
+                onClick = {
+                    viewModel.search(query)
+                    keyboardController?.hide()
+                }
+            ) {
                 Text("검색")
             }
         }
@@ -133,45 +154,41 @@ fun SearchScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .combinedClickable( // 💡 단순 clickable에서 롱클릭 지원으로 확장
+                            .combinedClickable(
                                 onClick = {
-                                    // search뷰모델을 통해 로컬 DB에 음악 로그 저장
-                                    viewModel.insertMusicToLog(music)
+                                    // 미니 플레이어 상태 업데이트 연동
+                                    onItemClick(music)
 
-                                    // 유튜브 고유 비디오 ID를 링크로 변환하여 기기 내 유튜브 앱에서 재생하는 트리거
+                                    // 💡 하단바 세팅과 동시에 유튜브 앱으로 즉시 이동
                                     uriHandler.openUri("https://www.youtube.com/watch?v=${music.id}")
                                 },
                                 onLongClick = {
-                                    // 💡 검색 리스트에서도 롱클릭 시 옵션 시트 호출
+                                    // 검색 리스트에서도 롱클릭 시 옵션 시트 호출
                                     selectedMusicForOptions = music
                                     showOptionsSheet = true
                                 }
                             )
                     ) {
-                        // 💡 Row를 사용해 가로로 배치 (왼쪽: 이미지, 오른쪽: 텍스트)
                         Row(
                             modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 🖼️ Coil을 이용한 비동기 이미지 로딩
                             AsyncImage(
                                 model = music.customAlbumArtUri ?: music.albumArtUrl, // 커스텀 아트 우선 표기 처리
                                 contentDescription = "썸네일 이미지",
                                 modifier = Modifier
-                                    .size(80.dp) // 썸네일 크기 지정
-                                    .clip(RoundedCornerShape(8.dp)), // 모서리를 둥글게 깎아줌
-                                contentScale = ContentScale.Crop // 이미지가 찌그러지지 않게 꽉 채움
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
                             )
 
-                            // 이미지와 텍스트 사이의 여백
                             Spacer(modifier = Modifier.width(16.dp))
 
-                            // 📝 기존 텍스트 컬럼
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = music.title,
                                     style = MaterialTheme.typography.titleMedium,
-                                    maxLines = 2 // 제목이 너무 길면 2줄까지만 표시
+                                    maxLines = 2
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(

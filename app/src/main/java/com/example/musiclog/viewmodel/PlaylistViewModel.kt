@@ -51,10 +51,17 @@ class PlaylistViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    // 💡 해결: 상세 화면 내 곡 추가 다이얼로그 공급용 전체 음악 데이터 소스 스트림 생성 함수 추가
+    // PlaylistViewModel.kt 내부
     fun getAllMusicLog(): Flow<List<com.example.musiclog.domain.model.Music>> {
         return musicDao.getAllMusic().map { entities ->
-            entities.map { it.toDomain() }
+            entities.map { entity ->
+                val domain = entity.toDomain()
+                // 💡 곡 추가 다이얼로그용 스트림 디코딩
+                domain.copy(
+                    title = android.text.Html.fromHtml(domain.title, android.text.Html.FROM_HTML_MODE_LEGACY).toString(),
+                    artist = android.text.Html.fromHtml(domain.artist, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+                )
+            }
         }
     }
 
