@@ -15,9 +15,9 @@
 - 자가 치유(Self-Healing)형 글로벌 랭킹: 단일 진실 공급원(SSOT) 구조를 통해 오프라인 기록을 자동 정합성 교정, Firebase RTDB 기반 전역 집계 및 백분율 분포 함수 등급 부여, 동점자 발생 시 공동 탑 팬 분기 처리 UI 구현
 
 ### 📸 기능 실행 화면
-|              로그인              | 계정 전환                               |            메인 대시보드             |            음원 검색             |             글로벌 랭킹             |          대기열 팝업           |
-|:-----------------------------:|-------------------------------------|:------------------------------:|:----------------------------:|:------------------------------:|:-------------------------:|
-| ![Auth](images/loginpage.png) | ![switch](images/switchaccount.png) | ![Dashboard](images/entry.png) | ![Search](images/search.png) | ![Ranking](images/ranking.png) | ![Queue](images/playlist) |
+|              로그인              | 계정 전환                               |            메인 대시보드             |            음원 검색             |             글로벌 랭킹             |            대기열 팝업             |
+|:-----------------------------:|-------------------------------------|:------------------------------:|:----------------------------:|:------------------------------:|:-----------------------------:|
+| ![Auth](images/loginpage.png) | ![switch](images/switchaccount.png) | ![Dashboard](images/entry.png) | ![Search](images/search.png) | ![Ranking](images/ranking.png) | ![Queue](images/playlist.png) |
 
 ---
 
@@ -28,7 +28,7 @@
 ---
 
 ## 4. 자료 및 영상 링크
-* **2분 요약 영상 링크:** [유튜브 요약 영상 바로가기](https://youtube.com/...)
-* **10분 상세 발표 영상 링크:** [유튜브 상세 발표 바로가기](https://youtube.com/...)
-* **프로젝트 최종 보고서 파일 링크:** [최종 보고서 PDF 다운로드 (구글 드라이브)](https://drive.google.com/...)
-* **APK 파일 다운로드 링크 또는 설치용 QR 코드:** [MusicLog APK 파일 다운로드](https://drive.google.com/...)
+* **2분 요약 영상 링크:** [유튜브 요약 영상 바로가기](https://youtube.com/shorts/PfS_3D-lBZ8?feature=share)
+* **10분 상세 발표 영상 링크:** [유튜브 상세 발표 바로가기](https://youtu.be/k_Q1oyP5zcw)
+* **프로젝트 최종 보고서 파일 링크:** [최종 보고서 PDF 다운로드 (구글 드라이브)](https://docs.google.com/document/d/1FwaJfV7HUAsuYqN_fzviP2BqXpL1wzr5/edit?usp=sharing&ouid=109872263631784877128&rtpof=true&sd=true)
+* **APK 파일 다운로드 링크 또는 설치용 QR 코드:** [MusicLog APK 파일 다운로드](https://drive.google.com/file/d/1uooNOYEPVQsHk4WGmDrcHxCGssU7yBay/view?usp=sharing)
